@@ -1,4 +1,4 @@
-FROM nvidia/cuda:10.0-cudnn7-devel-ubuntu16.04
+FROM nvidia/cuda:10.0-cudnn7-devel-ubuntu16.04@sha256:600b95db422409c71b958a1823bc77f0f305de0ae5655425a5d257f14bf807a2
 
 MAINTAINER Vishal Satish <vsatish@berkeley.edu>
 
