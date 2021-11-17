@@ -1,4 +1,4 @@
-FROM ubuntu:xenial
+FROM ubuntu:xenial@sha256:0f71fa8d4d2d4292c3c617fda2b36f6dabe5c8b6e34c3dc5b0d17d4e704bd39c
 
 MAINTAINER Vishal Satish <vsatish@berkeley.edu>
 
