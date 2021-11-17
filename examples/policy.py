@@ -39,7 +39,7 @@ import time
 import numpy as np
 
 from autolab_core import YamlConfig, Logger
-from perception import (BinaryImage, CameraIntrinsics, ColorImage, DepthImage,
+from autolab_core import (BinaryImage, CameraIntrinsics, ColorImage, DepthImage,
                         RgbdImage)
 from visualization import Visualizer2D as vis
 

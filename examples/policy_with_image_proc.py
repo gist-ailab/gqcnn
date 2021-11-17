@@ -38,7 +38,7 @@ import pcl
 import skimage
 
 from autolab_core import PointCloud, RigidTransform, YamlConfig, Logger
-from perception import (BinaryImage, CameraIntrinsics, ColorImage, DepthImage,
+from autolab_core import (BinaryImage, CameraIntrinsics, ColorImage, DepthImage,
                         RgbdImage, SegmentationImage)
 from visualization import Visualizer2D as vis
 

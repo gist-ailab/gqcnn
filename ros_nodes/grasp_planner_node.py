@@ -39,7 +39,7 @@ import numpy as np
 import rospy
 
 from autolab_core import YamlConfig
-from perception import (CameraIntrinsics, ColorImage, DepthImage, BinaryImage,
+from autolab_core import (CameraIntrinsics, ColorImage, DepthImage, BinaryImage,
                         RgbdImage)
 from visualization import Visualizer2D as vis
 from gqcnn.grasping import (Grasp2D, SuctionPoint2D, RgbdImageState,
@@ -51,6 +51,8 @@ from gqcnn.utils import GripperMode, NoValidGraspsException
 
 from geometry_msgs.msg import PoseStamped
 from std_msgs.msg import Header
+
+# os.chdir("/home/vision/catkin_ws/devel/lib/python3/dist-packages")
 from gqcnn.srv import (GQCNNGraspPlanner, GQCNNGraspPlannerBoundingBox,
                        GQCNNGraspPlannerSegmask)
 from gqcnn.msg import GQCNNGrasp

@@ -80,6 +80,7 @@ catkin_python_setup()
   GQCNNGraspPlanner.srv
   GQCNNGraspPlannerBoundingBox.srv
   GQCNNGraspPlannerSegmask.srv
+  GQCNNGraspPlannerRequest.srv
  )
 
 ## Generate actions in the 'action' folder

@@ -1,0 +1,4 @@
+"camera_info": "/wr/rs2/color/camera_info"
+"color": "/wr/rs2/color/image_raw"
+"depth": "/wr/rs2/aligned_depth_to_color/image_raw"
+"inpaint_rescale_factor": 1

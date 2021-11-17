@@ -1,5 +1,3 @@
-## Note: Python 2.x support has officially been dropped.
-
 # Berkeley AUTOLAB's GQCNN Package
 <p>
    <a href="https://travis-ci.org/BerkeleyAutomation/gqcnn/">
@@ -25,3 +23,12 @@ Please see the [docs](https://berkeleyautomation.github.io/gqcnn/) for installat
 ## Citation
 If you use any part of this code in a publication, please cite [the appropriate Dex-Net publication](https://berkeleyautomation.github.io/gqcnn/index.html#academic-use).
 
+
+## ROS
+
+```
+$ ROS_NAMESPACE="wr" roslaunch unstructured_task_manager rs_d435_wrist.launch
+$ roslaunch gqcnn grasp_planning_service.launch
+$ rosrun gqcnn grasp_planner_requester.py
+$ rosservice call /gqcnn/grasp_planner_request
+```

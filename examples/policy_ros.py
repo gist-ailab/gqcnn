@@ -40,7 +40,7 @@ import sys
 from cv_bridge import CvBridge, CvBridgeError
 
 from autolab_core import Point, Logger
-from perception import BinaryImage, CameraIntrinsics, ColorImage, DepthImage
+from autolab_core import BinaryImage, CameraIntrinsics, ColorImage, DepthImage
 from visualization import Visualizer2D as vis
 
 from gqcnn.grasping import Grasp2D, SuctionPoint2D, GraspAction
