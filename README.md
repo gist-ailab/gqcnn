@@ -26,9 +26,18 @@ If you use any part of this code in a publication, please cite [the appropriate 
 
 ## ROS
 
+model_name:=GQCNN-4.0-PJ or model_name:=FC-GQCNN-4.0-PJ:
 ```
 $ ROS_NAMESPACE="wr" roslaunch unstructured_task_manager rs_d435_wrist.launch
-$ roslaunch gqcnn grasp_planning_service.launch
+$ roslaunch gqcnn grasp_planning_service.launch model_name:=FC-GQCNN-4.0-PJ
 $ rosrun gqcnn grasp_planner_requester.py
 $ rosservice call /gqcnn/grasp_planner_request
+```
+
+## Notes
+
+Qt Error: This application failed to start because no Qt platform plugin could be initialized. Reinstalling the application may fix this problem.
+
+``
+pip install opencv-python==4.1.2.30  
 ```

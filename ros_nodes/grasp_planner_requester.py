@@ -23,6 +23,9 @@ from gqcnn.srv import GQCNNGraspPlanner, GQCNNGraspPlannerSegmask, GQCNNGraspPla
 
 from sensor_msgs.msg import CameraInfo, Image
 
+import matplotlib
+matplotlib.use('Qt5Agg')
+
 
 # Set up logger.
 logger = Logger.get_logger("ros_nodes/grasp_planner_requester.py")
@@ -54,7 +57,9 @@ class GQCNN():
         self.plan_grasp_segmask = rospy.ServiceProxy("gqcnn/grasp_planner_segmask", GQCNNGraspPlannerSegmask)
 
         request_plan_grasp = rospy.Service('/gqcnn/grasp_planner_request', GQCNNGraspPlannerRequest, self.request_plan_grasp)
+        self.grasp_vis_publisher = rospy.Publisher("/gqcnn/grasp_plan_vis", Image, queue_size=1)
         rospy.loginfo("Ready to request GQCNN grasp planning")
+        rospy.loginfo("Grasp planning results will be published at /gqcnn/grasp_plan_vis")
     
     def request_plan_grasp(self, msg):
 
@@ -66,6 +71,7 @@ class GQCNN():
 
         depth = rospy.wait_for_message(self.cfg["depth"], Image)
         depth = self.cv_bridge.imgmsg_to_cv2(depth, desired_encoding='32FC1')
+        depth = depth / 1000
         depth = cv2.resize(depth, (512, 384))
         depth_im = DepthImage(depth, frame=self.camera_intr.frame)
         depth_im = depth_im.inpaint(rescale_factor=self.cfg["inpaint_rescale_factor"])
@@ -87,7 +93,7 @@ class GQCNN():
             grasp_2d = Grasp2D(center,
                             grasp.angle,
                             grasp.depth,
-                            width=gripper_width,
+                            width=self.cfg["gripper_width"],
                             camera_intr=self.camera_intr)
         elif grasp_type == GQCNNGrasp.SUCTION:
             center = Point(np.array([grasp.center_px[0], grasp.center_px[1]]),
@@ -109,13 +115,17 @@ class GQCNN():
         action = GraspAction(grasp_2d, grasp.q_value, thumbnail)
 
         # Vis final grasp.
-        if vis_grasp:
-            vis.figure(size=(10, 10))
-            vis.imshow(depth_im, vmin=0.6, vmax=0.9)
-            vis.grasp(action.grasp, scale=2.5, show_center=False, show_axis=True)
-            vis.title("Planned grasp on depth (Q=%.3f)" % (action.q_value))
-            vis.show()
-        
+        fig = vis.figure(size=(10, 10))
+        vis.imshow(depth_im, vmin=0.25, vmax=0.6)
+        vis.grasp(action.grasp, scale=2.5, show_center=False, show_axis=True)
+        vis.title("Planned grasp on depth (Q=%.3f)" % (action.q_value))
+        fig.canvas.draw()
+        img = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
+        img  = img.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+        img = cv2.cvtColor(img,cv2.COLOR_RGB2BGR)
+        img = self.cv_bridge.cv2_to_imgmsg(img)
+        self.grasp_vis_publisher.publish(img)
+        return grasp
 
 
 if __name__ == "__main__":
