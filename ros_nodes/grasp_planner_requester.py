@@ -138,6 +138,8 @@ class GQCNN():
         angle = action.grasp.angle
 
         p_cam_grasp = gvc.convert_uvd_to_xyz(cx, cy, depth, self.camera_model)
+        p_cam_grasp[0] += 0.040
+        p_cam_grasp[1] += 0.0175
         grasp.depth = p_cam_grasp[2]
         ori = action.grasp.pose().pose_msg.orientation
         q_cam_grasp = [ori.x, ori.y, ori.z, ori.w]
