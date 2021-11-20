@@ -26,6 +26,10 @@ from sensor_msgs.msg import CameraInfo, Image
 import matplotlib
 matplotlib.use('Qt5Agg')
 
+import gail_vision_core as gvc
+import image_geometry
+from scipy.spatial.transform import Rotation as R
+import tf2_ros
 
 # Set up logger.
 logger = Logger.get_logger("ros_nodes/grasp_planner_requester.py")
@@ -47,8 +51,10 @@ class GQCNN():
         K = np.array(camera_info.K)
         camera_intr = CameraIntrinsics(fx=K[0], fy=K[4], cx=K[2], cy=K[5], height=640, width=640, frame="/gr/rs2/")
         self.camera_intr = camera_intr.resize(0.8) # 640 x 480 to 512 x 384
+        self.camera_model = image_geometry.PinholeCameraModel()
+        self.camera_model.fromCameraInfo(camera_intr.rosmsg)
         self.cv_bridge = CvBridge()
-
+        self.br = tf2_ros.StaticTransformBroadcaster()
 
         # Wait for grasp planning service and create service proxy.
         rospy.wait_for_service("/gqcnn/grasp_planner")
@@ -114,7 +120,7 @@ class GQCNN():
             sys.exit(1)
         action = GraspAction(grasp_2d, grasp.q_value, thumbnail)
 
-        # Vis final grasp.
+        # visualize grasp in 2D.
         fig = vis.figure(size=(10, 10))
         vis.imshow(depth_im, vmin=0.25, vmax=0.6)
         vis.grasp(action.grasp, scale=2.5, show_center=False, show_axis=True)
@@ -125,6 +131,27 @@ class GQCNN():
         img = cv2.cvtColor(img,cv2.COLOR_RGB2BGR)
         img = self.cv_bridge.cv2_to_imgmsg(img)
         self.grasp_vis_publisher.publish(img)
+
+        # visualize grap in 3D.
+        cx = int(action.grasp.center.x)
+        cy = int(action.grasp.center.y)
+        angle = action.grasp.angle
+
+        p_cam_grasp = gvc.convert_uvd_to_xyz(cx, cy, depth, self.camera_model)
+        grasp.depth = p_cam_grasp[2]
+        ori = action.grasp.pose().pose_msg.orientation
+        q_cam_grasp = [ori.x, ori.y, ori.z, ori.w]
+        r = R.from_rotvec(np.array([0, 0, angle - np.pi/2]))
+        q_cam_grasp = r.as_quat()
+        se3_cam_grasp = gvc.pq_to_se3(p_cam_grasp, q_cam_grasp)
+
+        transform_stamped_base_cam = gvc.subscribe_tf_transform_stamped("base", self.cfg["camera_frame"])
+        se3_base_cam = gvc.transform_stamped_to_se3(transform_stamped_base_cam)
+        se3_base_grasp = np.matmul(se3_base_cam, se3_cam_grasp)
+
+        transform_stamped_base_grasp = gvc.se3_to_transform_stamped(se3_base_grasp, "base", "grasp")
+        self.br.sendTransform(transform_stamped_base_grasp)
+        grasp.pose = gvc.transform_stamped_to_pose(transform_stamped_base_grasp)
         return grasp
 
 
