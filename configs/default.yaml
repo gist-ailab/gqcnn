@@ -2,5 +2,5 @@
 "color": "/wr/rs2/color/image_raw"
 "depth": "/wr/rs2/aligned_depth_to_color/image_raw"
 "inpaint_rescale_factor": 1
-"gripper_width": 0.05
+"gripper_width": 0.09
 "camera_frame": "rs2_color_optical_frame"

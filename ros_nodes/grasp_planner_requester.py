@@ -49,10 +49,10 @@ class GQCNN():
         # assume that rs = 640 x 480
         camera_info = rospy.wait_for_message(self.cfg["camera_info"], CameraInfo)
         K = np.array(camera_info.K)
-        camera_intr = CameraIntrinsics(fx=K[0], fy=K[4], cx=K[2], cy=K[5], height=640, width=640, frame="/gr/rs2/")
-        self.camera_intr = camera_intr.resize(0.8) # 640 x 480 to 512 x 384
+        self.camera_intr = CameraIntrinsics(fx=K[0], fy=K[4], cx=K[2], cy=K[5], height=480, width=640, frame="/gr/rs2/")
+        # self.camera_intr = camera_intr.resize(0.8) # 640 x 480 to 512 x 384
         self.camera_model = image_geometry.PinholeCameraModel()
-        self.camera_model.fromCameraInfo(camera_intr.rosmsg)
+        self.camera_model.fromCameraInfo(self.camera_intr.rosmsg)
         self.cv_bridge = CvBridge()
         self.br = tf2_ros.StaticTransformBroadcaster()
 
@@ -78,6 +78,7 @@ class GQCNN():
         depth = rospy.wait_for_message(self.cfg["depth"], Image)
         depth = self.cv_bridge.imgmsg_to_cv2(depth, desired_encoding='32FC1')
         depth = depth / 1000
+        depth_ori = depth
         depth = cv2.resize(depth, (512, 384))
         depth_im = DepthImage(depth, frame=self.camera_intr.frame)
         depth_im = depth_im.inpaint(rescale_factor=self.cfg["inpaint_rescale_factor"])
@@ -133,23 +134,21 @@ class GQCNN():
         self.grasp_vis_publisher.publish(img)
 
         # visualize grap in 3D.
-        cx = int(action.grasp.center.x)
-        cy = int(action.grasp.center.y)
+        cx = int(action.grasp.center.x * 640 / 512)
+        cy = int(action.grasp.center.y * 480 / 384)
         angle = action.grasp.angle
 
-        p_cam_grasp = gvc.convert_uvd_to_xyz(cx, cy, depth, self.camera_model)
-        p_cam_grasp[0] += 0.040
-        p_cam_grasp[1] += 0.0175
-        grasp.depth = p_cam_grasp[2]
-        ori = action.grasp.pose().pose_msg.orientation
-        q_cam_grasp = [ori.x, ori.y, ori.z, ori.w]
-        r = R.from_rotvec(np.array([0, 0, angle - np.pi/2]))
+        p_cam_grasp = gvc.convert_uvd_to_xyz(cx, cy, depth_ori, self.camera_model, rectify=False)
+        r = R.from_rotvec(np.array([0, 0, angle - np.pi / 2]))
         q_cam_grasp = r.as_quat()
         se3_cam_grasp = gvc.pq_to_se3(p_cam_grasp, q_cam_grasp)
 
         transform_stamped_base_cam = gvc.subscribe_tf_transform_stamped("base", self.cfg["camera_frame"])
         se3_base_cam = gvc.transform_stamped_to_se3(transform_stamped_base_cam)
         se3_base_grasp = np.matmul(se3_base_cam, se3_cam_grasp)
+
+        if se3_base_grasp[2, 3] < 0.003:
+            se3_base_grasp[2, 3] = 0.003
 
         transform_stamped_base_grasp = gvc.se3_to_transform_stamped(se3_base_grasp, "base", "grasp")
         self.br.sendTransform(transform_stamped_base_grasp)

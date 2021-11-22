@@ -29,7 +29,7 @@ If you use any part of this code in a publication, please cite [the appropriate 
 model_name:=GQCNN-4.0-PJ or model_name:=FC-GQCNN-4.0-PJ:
 ```
 $ ROS_NAMESPACE="wr" roslaunch unstructured_task_manager rs_d435_wrist.launch
-$ roslaunch gqcnn grasp_planning_service.launch model_name:=FC-GQCNN-4.0-PJ
+$ roslaunch gqcnn grasp_planning_service.launch model_name:=GQCNN-4.0-PJ
 $ rosrun gqcnn grasp_planner_requester.py
 $ rosservice call /gqcnn/grasp_planner_request
 ```
