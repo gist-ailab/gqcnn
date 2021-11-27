@@ -19,7 +19,7 @@ from visualization import Visualizer2D as vis
 
 from gqcnn.grasping import Grasp2D, SuctionPoint2D, GraspAction
 from gqcnn.msg import GQCNNGrasp
-from gqcnn.srv import GQCNNGraspPlanner, GQCNNGraspPlannerSegmask, GQCNNGraspPlannerRequest
+from gqcnn.srv import GQCNNGraspPlanner, GQCNNGraspPlannerSegmask, GQCNNGraspPlannerRequest, GQCNNGraspPlannerRequestSegmask
 
 from sensor_msgs.msg import CameraInfo, Image
 
@@ -63,6 +63,7 @@ class GQCNN():
         self.plan_grasp_segmask = rospy.ServiceProxy("gqcnn/grasp_planner_segmask", GQCNNGraspPlannerSegmask)
 
         request_plan_grasp = rospy.Service('/gqcnn/grasp_planner_request', GQCNNGraspPlannerRequest, self.request_plan_grasp)
+        request_plan_segmask_grasp = rospy.Service('/gqcnn/grasp_planner_segmask_request', GQCNNGraspPlannerRequestSegmask, self.request_plan_grasp)
         self.grasp_vis_publisher = rospy.Publisher("/gqcnn/grasp_plan_vis", Image, queue_size=1)
         rospy.loginfo("Ready to request GQCNN grasp planning")
         rospy.loginfo("Grasp planning results will be published at /gqcnn/grasp_plan_vis")
@@ -82,14 +83,13 @@ class GQCNN():
         depth = cv2.resize(depth, (512, 384))
         depth_im = DepthImage(depth, frame=self.camera_intr.frame)
         depth_im = depth_im.inpaint(rescale_factor=self.cfg["inpaint_rescale_factor"])
-        
-
-        # !TODO: support segmentation mask of UOAIS
-        segm_mask = depth_im.invalid_pixel_mask().inverse()
-        # segmask = BinaryImage.open(segmask_filename, frame=camera_intr.frame)
-        # grasp_resp = self.plan_grasp_segmask(color_im.rosmsg, depth_im.rosmsg,
-        #                                 camera_intr.rosmsg, segmask.rosmsg)
-        grasp_resp = self.plan_grasp(color_im.rosmsg, depth_im.rosmsg, self.camera_intr.rosmsg)
+        print(msg)
+        if hasattr(msg, 'segmask'):
+            segmask = BinaryImage(msg.segmask)
+            grasp_resp = self.plan_grasp_segmask(color_im.rosmsg, depth_im.rosmsg, 
+                                                self.camera_intr.rosmsg, segmask.rosmsg)
+        else:
+            grasp_resp = self.plan_grasp(color_im.rosmsg, depth_im.rosmsg, self.camera_intr.rosmsg)
         grasp = grasp_resp.grasp
 
         # Convert to a grasp action.
@@ -143,12 +143,13 @@ class GQCNN():
         q_cam_grasp = r.as_quat()
         se3_cam_grasp = gvc.pq_to_se3(p_cam_grasp, q_cam_grasp)
 
-        transform_stamped_base_cam = gvc.subscribe_tf_transform_stamped("base", self.cfg["camera_frame"])
+        transform_stamped_base_cam = gvc.subscribe_tf_transform_stamped("base", self.cfg["camera_frame"], 10)
         se3_base_cam = gvc.transform_stamped_to_se3(transform_stamped_base_cam)
         se3_base_grasp = np.matmul(se3_base_cam, se3_cam_grasp)
 
-        if se3_base_grasp[2, 3] < 0.003:
-            se3_base_grasp[2, 3] = 0.003
+        se3_base_grasp[2, 3] -= 0.007
+        if se3_base_grasp[2, 3] < 0.002:
+            se3_base_grasp[2, 3] = 0.002
 
         transform_stamped_base_grasp = gvc.se3_to_transform_stamped(se3_base_grasp, "base", "grasp")
         self.br.sendTransform(transform_stamped_base_grasp)
